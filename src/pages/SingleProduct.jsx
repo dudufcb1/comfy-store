@@ -1,29 +1,64 @@
 import { Link, useLoaderData } from 'react-router-dom';
 import { authFetch, formatPrice, generarOpciones } from '../utils';
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { addItem } from '../features/cart/cartSlice';
 
-export const loader = async ({ params }) => {
-  try {
-    const resp = await authFetch(`/products/${params.id}`);
-    return { product: resp.data.data };
-  } catch (error) {
-    console.log(error);
-  }
+const singleProductQuery = (id) => {
+  return {
+    queryKey: ['singleProduct', id],
+    queryFn: () => authFetch(`/products/${id}`),
+  };
 };
 
+export const loader =
+  (queryClient) =>
+  async ({ params }) => {
+    try {
+      const resp = await queryClient.ensureQueryData(
+        singleProductQuery(params.id)
+      );
+      return { product: resp.data.data };
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+//ACA EMPIEZA EL COMPONENTE
 const SingleProduct = () => {
   const { product } = useLoaderData(); //acá se hace un uso del data que viene del loader
-  console.log(JSON.stringify(product, null, 2));
+  // console.log(JSON.stringify(product, null, 2));
 
   const { image, title, price, description, colors, company } =
     product.attributes;
 
   const dollarAmount = formatPrice(price);
   const [productColor, setProductColor] = useState(colors[0]);
-  const [amount, setAmount] = useState(2);
+  const [amount, setAmount] = useState(1);
   const handleAmount = (e) => {
     setAmount(parseInt(e.target.value));
   };
+
+  //#region ActionYPayload0408
+  /* Se crea un objecto para manejarlo como un item que irá al carrito, en vez de mandar propiedad por propiedad o hacer algún tipo de magia negra en el carrito simplemente le enviamos el producto */
+  //#endregion
+  const cartProduct = {
+    cartID: product.id + productColor,
+    productID: product.id,
+    image,
+    title,
+    price,
+    company,
+    productColor,
+    amount,
+  };
+
+  const dispatch = useDispatch();
+
+  const addToCart = () => {
+    dispatch(addItem({ product: cartProduct }));
+  };
+
   return (
     <section>
       <div className="text-md breadcrumbs">
@@ -90,12 +125,7 @@ const SingleProduct = () => {
           </div>
           {/* CART BTN */}
           <div className="mt-10">
-            <button
-              className="btn btn-secondary btn-md"
-              onClick={(e) => {
-                console.log(e);
-              }}
-            >
+            <button className="btn btn-secondary btn-md" onClick={addToCart}>
               Add to bag
             </button>
           </div>

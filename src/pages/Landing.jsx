@@ -3,11 +3,15 @@ import { authFetch } from '../utils';
 
 const urlTerm = '/products?featured=true';
 
-export const loader = async () => {
+const featuredProductsQuery = {
+  queryKey: ['featuredProducts'],
+  queryFn: () => authFetch(urlTerm),
+};
+export const loader = (queryClient) => async () => {
   try {
-    const resp = await authFetch(urlTerm);
+    const resp = await queryClient.ensureQueryData(featuredProductsQuery);
     const products = resp.data.data;
-    console.log(products);
+    // console.log(products);
     return { products };
   } catch (error) {
     console.log(error);
